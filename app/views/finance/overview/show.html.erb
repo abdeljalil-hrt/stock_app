@@ -1,0 +1,26 @@
+<div class="mb-6">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-lg font-semibold"><%= ui("Finance overview") %></h1>
+    <%= link_to ui("Add expense"), finance_expenses_path, class: "rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700" %>
+  </div>
+  <p class="mt-1 text-xs text-gray-500"><%= ui("Finance records will appear here when finance tracking is configured.") %></p>
+</div>
+
+<section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="<%= ui("Finance overview") %>">
+  <% [
+    [ui("Cash now"), "—"],
+    [ui("Income this month"), "—"],
+    [ui("Expenses this month"), format_money(@expenses_this_month)],
+    [ui("Net profit"), "—"],
+    [ui("Gross margin"), "—"],
+    [ui("Stock value"), @stock_value.nil? ? "—" : format_money((@stock_value * 100).round)],
+    [ui("Money held by carrier"), "—"],
+    [ui("Pot balances"), "—"],
+    [ui("Available to give"), "—"]
+  ].each do |label, value| %>
+    <article class="rounded-lg border border-gray-200 p-4">
+      <p class="text-xs text-gray-500"><%= label %></p>
+      <p class="mt-1 text-2xl font-semibold tabular-nums"><%= value %></p>
+    </article>
+  <% end %>
+</section>

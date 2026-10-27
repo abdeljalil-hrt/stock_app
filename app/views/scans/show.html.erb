@@ -1,0 +1,60 @@
+<% content_for :scan_feedback, "true" %>
+<% mode_labels = { "ship" => ui("Ship"), "return_good" => ui("Return good"), "return_damaged" => ui("Return damaged"), "restock" => ui("Restock") } %>
+<% scan_modes = %w[ship return_good return_damaged] %>
+<div class="mx-auto max-w-3xl">
+  <h1 class="text-lg font-semibold"><%= mode_labels.fetch(@mode) %></h1>
+  <p class="mt-1 text-xs text-gray-500"><%= ui("Barcode scanners submit automatically; when typing a SKU, press Enter.") %></p>
+
+  <nav aria-label="Scan modes" class="mt-4 flex flex-wrap items-center gap-2">
+    <% scan_modes.each do |mode| %>
+      <% mode_class = mode == @mode ? "bg-gray-100 font-medium text-gray-900" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900" %>
+      <%= link_to mode_labels.fetch(mode), scan_path(mode, reference: @reference.presence), class: "rounded-md px-3 py-2 text-sm #{mode_class}", aria: { current: mode == @mode ? "page" : nil } %>
+    <% end %>
+    <%= link_to ui("Print barcode labels"), labels_path, class: "ml-auto text-sm text-indigo-600 hover:text-indigo-700" %>
+  </nav>
+
+  <%= form_with url: scan_path(@mode), method: :post, class: "mt-5 rounded-lg border border-gray-200 bg-white p-4" do |form| %>
+    <div>
+      <%= form.label :sku, ui("Product SKU"), class: "mb-2 block text-sm font-medium" %>
+      <%= form.text_field :sku, autofocus: true, autocomplete: "off", required: true, class: "w-full rounded-md border border-gray-200 px-4 py-4 font-mono text-2xl focus:border-indigo-600 focus:outline-none", "aria-label": ui("Scan barcode or enter SKU"), data: { controller: "barcode-scan", action: "keydown->barcode-scan#keydown" } %>
+    </div>
+    <div class="mt-4">
+      <%= form.label :reference, ui("Order / tracking reference (optional)"), class: "mb-2 block text-sm font-medium" %>
+      <%= form.text_field :reference, value: @reference, autocomplete: "off", class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %>
+    </div>
+    <%= form.submit ui("Record scan"), class: "mt-4 w-full cursor-pointer rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700" %>
+  <% end %>
+
+  <% if flash[:notice] %>
+    <p class="mt-5 rounded-lg bg-green-100 px-5 py-4 text-2xl font-bold text-green-900" role="status"><%= flash[:notice] %></p>
+  <% end %>
+  <% if flash[:alert] %>
+    <p class="mt-5 rounded-lg bg-red-100 px-5 py-4 text-xl font-bold text-red-900" role="alert"><%= flash[:alert] %></p>
+  <% end %>
+
+  <div class="mt-8 flex items-center justify-between">
+    <h2 class="text-sm font-medium"><%= ui("Last 10 scans") %></h2>
+    <%= button_to ui("Undo last scan"), undo_scan_path, method: :post, class: "rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50" %>
+  </div>
+  <div class="mt-3 overflow-x-auto rounded-lg border bg-white">
+    <table class="w-full text-left">
+      <thead class="border-b border-gray-200 text-xs uppercase text-gray-500">
+        <tr><th class="px-3 py-2"><%= ui("Time") %></th><th class="px-3 py-2">SKU</th><th class="px-3 py-2"><%= ui("Action") %></th><th class="px-3 py-2"><%= ui("Reference") %></th><th class="px-3 py-2 text-right"><%= ui("Qty") %></th></tr>
+      </thead>
+      <tbody>
+        <% @movements.each do |movement| %>
+          <tr class="border-b border-gray-100">
+            <td class="whitespace-nowrap px-3 py-2 text-xs text-gray-500"><%= l(movement.created_at, format: :short) %></td>
+            <td class="px-3 py-2 font-mono text-xs"><%= movement.variant.sku %></td>
+            <td class="px-3 py-2"><%= mode_labels.fetch(movement.kind) %></td>
+            <td class="px-3 py-2 text-xs text-gray-500"><%= movement.reference.presence || "—" %></td>
+            <td class="px-3 py-2 text-right tabular-nums"><%= movement.quantity %></td>
+          </tr>
+        <% end %>
+        <% if @movements.empty? %>
+          <tr><td colspan="5" class="px-3 py-6 text-center text-xs text-gray-500"><%= ui("No scans recorded yet.") %></td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,88 @@
+<div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <h1 class="text-lg font-semibold">PO <%= @purchase_order.number %></h1>
+    <p class="mt-1 text-xs text-gray-500"><%= @purchase_order.supplier %> · <%= ui(@purchase_order.status.humanize) %></p>
+  </div>
+  <% if @purchase_order.status == "draft" %>
+    <%= link_to ui("Edit"), edit_finance_purchase_order_path(@purchase_order), class: "text-sm text-indigo-600 hover:text-indigo-700" %>
+  <% end %>
+</div>
+<% if flash[:notice].present? %><p class="mb-3 text-sm text-green-700" role="status"><%= flash[:notice] %></p><% end %>
+<% if flash[:alert].present? %><p class="mb-3 text-sm text-red-700" role="alert"><%= flash[:alert] %></p><% end %>
+
+<section class="rounded-lg border border-gray-200 p-4">
+  <h2 class="mb-3 text-sm font-medium"><%= ui("Lines") %></h2>
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[560px] text-left text-sm">
+      <thead class="border-b border-gray-200 text-xs uppercase text-gray-500"><tr><th class="py-2"><%= ui("Product") %></th><th class="py-2 text-right"><%= ui("Quantity") %></th><th class="py-2 text-right"><%= ui("Unit price (DH)") %></th><th class="py-2 text-right"><%= ui("Goods total") %></th><th class="py-2 text-right"><%= ui("Received") %></th><th class="py-2 text-right"><%= ui("Landed/unit") %></th></tr></thead>
+      <tbody class="divide-y divide-gray-100">
+        <% @lines.each do |line| %>
+          <tr>
+            <td class="py-2"><%= line.variant.sku %> — <%= line.variant.name %></td>
+            <td class="py-2 text-right tabular-nums"><%= line.quantity %></td>
+            <td class="py-2 text-right tabular-nums"><%= format_money(line.unit_price_cents) %></td>
+            <td class="py-2 text-right tabular-nums"><%= format_money(line.goods_total_cents) %></td>
+            <td class="py-2 text-right tabular-nums"><%= line.received_quantity %></td>
+            <td class="py-2 text-right tabular-nums"><%= format_money(@purchase_order.landed_unit_cost_cents(line)) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+      <tfoot class="border-t border-gray-200 text-sm font-medium"><tr><td class="py-2" colspan="3"><%= ui("Goods total") %></td><td class="py-2 text-right tabular-nums"><%= format_money(@purchase_order.goods_total_cents) %></td><td colspan="2"></td></tr></tfoot>
+    </table>
+  </div>
+</section>
+
+<section class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+  <div class="rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-3 text-sm font-medium"><%= ui("Additional costs") %></h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="border-b border-gray-200 text-xs uppercase text-gray-500"><tr><th class="py-2"><%= ui("Cost type") %></th><th class="py-2 text-right"><%= ui("Amount") %></th><th class="py-2"><%= ui("Paid on") %></th><th class="py-2"><%= ui("Account") %></th></tr></thead>
+        <tbody class="divide-y divide-gray-100">
+          <% @purchase_order.costs.reject { |cost| cost.amount_cents.zero? }.each do |cost| %>
+            <tr><td class="py-2"><%= ui(cost.kind.humanize) %></td><td class="py-2 text-right tabular-nums"><%= format_money(cost.amount_cents) %></td><td class="py-2"><%= cost.paid_on ? l(cost.paid_on, format: :short) : "—" %></td><td class="py-2"><%= cost.account&.name || "—" %></td></tr>
+          <% end %>
+          <% if @purchase_order.costs.reject { |cost| cost.amount_cents.zero? }.empty? %><tr><td colspan="4" class="py-4 text-center text-xs text-gray-500"><%= ui("No additional costs.") %></td></tr><% end %>
+        </tbody>
+      </table>
+    </div>
+    <div class="mt-3 space-y-1 border-t border-gray-100 pt-3 text-right text-sm tabular-nums">
+      <p><%= ui("Goods total") %>: <%= format_money(@purchase_order.goods_total_cents) %></p>
+      <p><%= ui("Additional costs") %>: <%= format_money(@purchase_order.extras_total_cents) %></p>
+      <p class="font-semibold"><%= ui("Landed cost") %>: <%= format_money(@purchase_order.landed_total_cents) %></p>
+    </div>
+  </div>
+
+  <div class="rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-3 text-sm font-medium"><%= ui("Add cost") %></h2>
+    <%= form_with url: add_cost_finance_purchase_order_path(@purchase_order), scope: :cost, method: :post, local: true, data: { turbo: "false" }, class: "grid grid-cols-1 gap-3" do |form| %>
+      <div><%= form.label :kind, ui("Cost type"), class: "mb-1 block text-xs text-gray-500" %><%= form.select :kind, PurchaseOrder::COST_KINDS.map { |kind| [ui(kind.humanize), kind] }, {}, class: "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm" %></div>
+      <div><%= form.label :amount, ui("Amount (DH)"), class: "mb-1 block text-xs text-gray-500" %><%= form.number_field :amount, min: "0.01", step: "0.01", required: true, class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+      <div><%= form.label :paid_on, ui("Paid on"), class: "mb-1 block text-xs text-gray-500" %><%= form.date_field :paid_on, required: true, class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+      <div><%= form.label :account_id, ui("Account"), class: "mb-1 block text-xs text-gray-500" %><%= form.collection_select :account_id, @accounts, :id, :name, { prompt: ui("Choose account") }, required: true, class: "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm" %></div>
+      <%= form.submit ui("Add cost"), class: "cursor-pointer rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700" %>
+    <% end %>
+  </div>
+</section>
+
+<% if @purchase_order.status != "received" %>
+  <section class="mt-5 rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-3 text-sm font-medium"><%= ui("Receive products") %></h2>
+    <% if @purchase_order.status == "draft" %>
+      <%= button_to ui("Mark as ordered"), mark_ordered_finance_purchase_order_path(@purchase_order), method: :post, class: "rounded-md border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" %>
+    <% else %>
+      <%= form_with url: receive_finance_purchase_order_path(@purchase_order), method: :post, local: true, data: { turbo: "false" } do %>
+        <div class="space-y-3">
+          <% @lines.each do |line| %>
+            <% remaining = line.quantity - line.received_quantity %>
+            <label class="grid grid-cols-1 items-center gap-2 text-sm sm:grid-cols-[1fr_10rem]">
+              <span><%= line.variant.sku %> — <%= line.variant.name %> <span class="text-xs text-gray-500">(<%= ui("Remaining") %>: <%= remaining %>)</span></span>
+              <input type="number" name="received[<%= line.id %>]" min="0" max="<%= remaining %>" value="0" class="w-full rounded-md border border-gray-200 px-3 py-2 text-sm">
+            </label>
+          <% end %>
+        </div>
+        <button type="submit" class="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><%= ui("Record receipt") %></button>
+      <% end %>
+    <% end %>
+  </section>
+<% end %>

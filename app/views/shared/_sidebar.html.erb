@@ -1,0 +1,66 @@
+<% dashboard_active = current_page?(dashboard_path) %>
+<% stock_active = [stock_index_path, variants_path].include?(request.path) %>
+<% scan_active = request.path.start_with?("/scan/") %>
+<% history_active = [history_index_path, stock_movements_path].include?(request.path) %>
+<% finance_active = request.path.start_with?("/finance") %>
+<% base_link = "flex items-center gap-3 rounded-md px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900" %>
+<% active_link = "bg-gray-100 text-gray-900 font-medium" %>
+<% stock_links = [
+  [ui("Dashboard"), dashboard_path, dashboard_active],
+  [ui("Stock"), stock_index_path, stock_active],
+  [ui("Scan"), scan_path(:ship), scan_active],
+  [ui("History"), history_index_path, history_active]
+] %>
+<% finance_links = [
+  [ui("Overview"), finance_overview_path, request.path == finance_overview_path],
+  [ui("Expenses"), finance_expenses_path, request.path.start_with?("/finance/expenses")],
+  [ui("Supplier orders"), finance_purchase_orders_path, request.path.start_with?("/finance/purchase_orders")],
+  [ui("Balance check"), finance_balance_check_path, request.path.start_with?("/finance/balance-check")],
+  [ui("Reports"), finance_reports_path, request.path.start_with?("/finance/reports")],
+  [ui("Settings"), finance_settings_path, request.path.start_with?("/finance/settings")]
+] %>
+<% groups = [[ui("Stock"), stock_links]] %>
+<% groups << [ui("Finance"), finance_links] if Current.user&.owner? %>
+
+<div data-sidebar-target="backdrop" data-action="click->sidebar#close" class="fixed inset-0 z-40 hidden bg-black/30 md:hidden"></div>
+<aside data-sidebar-target="drawer" class="fixed inset-y-0 left-0 z-50 flex w-64 -translate-x-full flex-col border-r border-gray-200 bg-white p-4 transition-transform md:hidden">
+  <div class="mb-5 text-sm font-semibold text-gray-900">Stock</div>
+  <nav class="space-y-5">
+    <% groups.each do |group_label, links| %>
+      <section>
+        <h2 class="mb-1 px-3 text-xs font-medium uppercase tracking-wide text-gray-400"><%= group_label %></h2>
+        <% links.each do |label, path, active| %>
+          <%= link_to path, class: "#{base_link} #{active ? active_link : ''}", data: { action: "click->sidebar#close" } do %>
+            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5h16M4 10h16M4 15h10M4 20h10"/></svg><%= label %>
+          <% end %>
+        <% end %>
+      </section>
+    <% end %>
+  </nav>
+  <div class="mt-auto border-t border-gray-200 pt-4">
+    <p class="truncate px-3 text-xs text-gray-500"><%= Current.user&.email_address %></p>
+    <%= button_to ui("Sign out"), session_path, method: :delete, class: "mt-2 w-full rounded-md px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900" %>
+    <%= button_to(I18n.locale == :en ? "Français" : "English", locale_path(I18n.locale == :en ? :fr : :en), method: :post, class: "mt-1 w-full rounded-md px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900") %>
+  </div>
+</aside>
+
+<aside class="fixed inset-y-0 left-0 hidden w-52 flex-col border-r border-gray-200 bg-white p-4 md:flex">
+  <div class="mb-5 text-sm font-semibold text-gray-900">Stock</div>
+  <nav class="space-y-5">
+    <% groups.each do |group_label, links| %>
+      <section>
+        <h2 class="mb-1 px-3 text-xs font-medium uppercase tracking-wide text-gray-400"><%= group_label %></h2>
+        <% links.each do |label, path, active| %>
+          <%= link_to path, class: "#{base_link} #{active ? active_link : ''}" do %>
+            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5h16M4 10h16M4 15h10M4 20h10"/></svg><%= label %>
+          <% end %>
+        <% end %>
+      </section>
+    <% end %>
+  </nav>
+  <div class="mt-auto border-t border-gray-200 pt-4">
+    <p class="truncate px-3 text-xs text-gray-500"><%= Current.user&.email_address %></p>
+    <%= button_to ui("Sign out"), session_path, method: :delete, class: "mt-2 w-full rounded-md px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900" %>
+    <%= button_to(I18n.locale == :en ? "Français" : "English", locale_path(I18n.locale == :en ? :fr : :en), method: :post, class: "mt-1 w-full rounded-md px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900") %>
+  </div>
+</aside>

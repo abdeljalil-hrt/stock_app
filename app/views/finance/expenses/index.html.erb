@@ -1,0 +1,126 @@
+<div class="mb-5">
+  <h1 class="text-lg font-semibold"><%= ui("Expenses") %></h1>
+  <p class="mt-1 text-xs text-gray-500"><%= ui("Enter one expense per line. Amount first, followed by a description.") %></p>
+</div>
+
+<section class="rounded-lg border border-gray-200 p-4">
+  <h2 class="mb-3 text-sm font-medium"><%= ui("Quick entry") %></h2>
+  <% if flash[:alert].present? %>
+    <p class="mb-3 text-sm text-red-700" role="alert"><%= flash[:alert] %></p>
+  <% end %>
+  <% if @preview_rows.present? %>
+    <%= form_with url: finance_expense_save_all_path, method: :post, local: true, data: { turbo: "false" } do %>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[900px] text-left text-sm">
+          <thead class="border-b border-gray-200 text-xs uppercase text-gray-500">
+            <tr>
+              <th class="py-2"><%= ui("Date") %></th>
+              <th class="py-2"><%= ui("Amount") %></th>
+              <th class="py-2"><%= ui("Description") %></th>
+              <th class="py-2"><%= ui("Category") %></th>
+              <th class="py-2"><%= ui("Account") %></th>
+              <th class="py-2"><%= ui("Supplier order") %></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @preview_rows.each_with_index do |preview, index| %>
+              <% line = preview.is_a?(Hash) ? preview[:line] : preview %>
+              <% parsed = line %>
+              <% category_id = preview.is_a?(Hash) ? preview[:category_id] : parsed.category&.id %>
+              <% account_id = preview.is_a?(Hash) ? preview[:account_id] : parsed.account&.id %>
+              <% date_value = preview.is_a?(Hash) ? preview[:date] : parsed.date %>
+              <% po_reference = preview.is_a?(Hash) ? preview[:purchase_order_reference] : parsed.purchase_order_reference %>
+              <% row_error = preview.is_a?(Hash) ? preview[:error] : parsed.error %>
+              <tr>
+                <td class="py-2 pr-2">
+                  <%= hidden_field_tag "expenses[#{index}][line]", parsed.line %>
+                  <%= date_field_tag "expenses[#{index}][date]", date_value, required: true, class: "w-full rounded-md border border-gray-200 px-2 py-2 text-sm" %>
+                </td>
+                <td class="whitespace-nowrap py-2 pr-2 tabular-nums"><%= parsed.amount_cents ? format_money(parsed.amount_cents) : "—" %></td>
+                <td class="py-2 pr-2"><%= parsed.description.presence || "—" %></td>
+                <td class="min-w-52 py-2 pr-2">
+                  <%= select_tag "expenses[#{index}][category_id]", options_for_select([[ui("Needs category"), ""]] + @categories.map { |category| [ui(category.name), category.id] }, category_id.presence || ""), required: true, class: "w-full rounded-md border border-gray-200 bg-white px-2 py-2 text-sm" %>
+                  <% if row_error.present? %><p class="mt-1 text-xs text-red-700"><%= row_error %></p><% end %>
+                </td>
+                <td class="min-w-40 py-2 pr-2">
+                  <%= select_tag "expenses[#{index}][account_id]", options_for_select(@accounts.map { |account| [account.name, account.id] }, account_id), required: true, class: "w-full rounded-md border border-gray-200 bg-white px-2 py-2 text-sm" %>
+                </td>
+                <td class="min-w-36 py-2">
+                  <%= text_field_tag "expenses[#{index}][purchase_order_reference]", po_reference, placeholder: "po123", class: "w-full rounded-md border border-gray-200 px-2 py-2 text-sm" %>
+                  <% if @categories.find { |category| category.id.to_s == category_id.to_s }&.kind == "cost_of_goods" && po_reference.blank? %>
+                    <p class="mt-1 text-xs text-amber-700"><%= ui("Link to a supplier order?") %></p>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <%= link_to ui("Edit lines"), finance_expenses_path, class: "text-sm text-gray-600 hover:text-gray-900" %>
+        <%= submit_tag ui("Save all"), class: "cursor-pointer rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700" %>
+      </div>
+    <% end %>
+  <% else %>
+    <%= form_with url: finance_expense_preview_path, method: :post, local: true, data: { turbo: "false" } do |form| %>
+      <%= form.text_area :lines, value: @lines, rows: 3, autofocus: true, placeholder: "1000 ads\n200 packaging\n50 transport to warehouse\n150 wifi", class: "w-full rounded-md border border-gray-200 px-3 py-3 text-sm focus:border-indigo-600 focus:outline-none" %>
+      <div class="mt-3 flex justify-end">
+        <%= form.submit ui("Preview"), class: "cursor-pointer rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700" %>
+      </div>
+    <% end %>
+  <% end %>
+</section>
+
+<details class="mt-4 rounded-lg border border-gray-200 p-4">
+  <summary class="cursor-pointer text-sm font-medium"><%= ui("Add one expense") %></summary>
+  <%= form_with model: [:finance, @transaction], url: finance_expenses_path, method: :post, local: true, data: { turbo: "false" }, class: "mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2" do |form| %>
+    <% if @transaction&.errors&.any? %>
+      <div class="sm:col-span-2 text-sm text-red-700"><%= @transaction.errors.full_messages.to_sentence %></div>
+    <% end %>
+    <div><%= form.label :date, ui("Date"), class: "mb-1 block text-xs text-gray-500" %><%= form.date_field :date, required: true, class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+    <div><%= form.label :amount, ui("Amount"), class: "mb-1 block text-xs text-gray-500" %><%= form.number_field :amount, step: "0.01", min: "0.01", required: true, class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+    <div><%= form.label :category_id, ui("Category"), class: "mb-1 block text-xs text-gray-500" %><%= form.collection_select :category_id, @categories, :id, :name, { prompt: ui("Choose category") }, required: true, class: "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm" %></div>
+    <div><%= form.label :account_id, ui("Account"), class: "mb-1 block text-xs text-gray-500" %><%= form.collection_select :account_id, @accounts, :id, :name, { selected: @transaction.account_id }, required: true, class: "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm" %></div>
+    <div><%= form.label :pot_id, ui("Pot (optional)"), class: "mb-1 block text-xs text-gray-500" %><%= form.collection_select :pot_id, @pots, :id, :name, { include_blank: true }, class: "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm" %></div>
+    <div><%= form.label :note, ui("Note"), class: "mb-1 block text-xs text-gray-500" %><%= form.text_field :note, class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+    <div><%= form.label :purchase_order_reference, ui("Supplier order reference (for cost of goods)"), class: "mb-1 block text-xs text-gray-500" %><%= form.text_field :purchase_order_reference, placeholder: "po123", class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+    <div class="sm:col-span-2"><%= form.submit ui("Save expense"), class: "cursor-pointer rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700" %></div>
+  <% end %>
+</details>
+
+<section class="mt-8">
+  <div class="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+    <h2 class="text-sm font-medium"><%= ui("This month's expenses") %></h2>
+    <p class="text-sm font-semibold tabular-nums"><%= ui("Total") %>: <%= format_money(@month_total_cents || 0) %></p>
+  </div>
+  <% if flash[:notice].present? %><p class="mb-3 text-sm text-green-700" role="status"><%= flash[:notice] %></p><% end %>
+  <%= form_with url: finance_expenses_path, method: :get, local: true, class: "mb-4 flex flex-wrap gap-2" do |form| %>
+    <%= form.month_field :month, value: @month&.strftime("%Y-%m"), class: "rounded-md border border-gray-200 px-3 py-2 text-sm" %>
+    <%= form.select :category_id, options_for_select([[ui("All categories"), ""]] + @categories.map { |category| [ui(category.name), category.id] }, @category_id), {}, class: "rounded-md border border-gray-200 bg-white px-3 py-2 text-sm" %>
+    <%= form.submit ui("Filter"), class: "rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" %>
+  <% end %>
+
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[640px] text-left text-sm">
+      <thead class="border-b border-gray-200 text-xs uppercase text-gray-500">
+        <tr><th class="py-2"><%= ui("Date") %></th><th class="py-2"><%= ui("Category") %></th><th class="py-2 text-right"><%= ui("Amount") %></th><th class="py-2"><%= ui("Account") %></th><th class="py-2"><%= ui("Note") %></th><th class="py-2"></th></tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <% @transactions.to_a.each do |transaction| %>
+          <tr>
+            <td class="whitespace-nowrap py-2"><%= l(transaction.date, format: :short) %></td>
+            <td class="py-2"><%= ui(transaction.category.name) %></td>
+            <td class="whitespace-nowrap py-2 text-right tabular-nums"><%= format_money(transaction.amount_cents) %></td>
+            <td class="py-2"><%= transaction.account.name %></td>
+            <td class="py-2 text-gray-500"><%= transaction.note.presence || "—" %></td>
+            <td class="whitespace-nowrap py-2 text-right">
+              <%= link_to ui("Edit"), edit_finance_expense_path(transaction), class: "text-indigo-600 hover:text-indigo-700" %>
+              <%= button_to ui("Delete"), finance_expense_path(transaction), method: :delete, form: { class: "inline" }, data: { turbo_confirm: ui("Delete this expense?") }, class: "ml-2 cursor-pointer text-gray-500 hover:text-red-700" %>
+            </td>
+          </tr>
+        <% end %>
+        <% if @transactions.to_a.empty? %><tr><td colspan="6" class="py-6 text-center text-xs text-gray-500"><%= ui("No expenses for this month.") %></td></tr><% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

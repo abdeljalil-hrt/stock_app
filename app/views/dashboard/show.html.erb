@@ -1,0 +1,192 @@
+<% stats = @stats %>
+<% chart_options = { colors: ["#4f46e5"], library: { plugins: { legend: { display: false } }, scales: { x: { grid: { color: "#f3f4f6" } }, y: { beginAtZero: true, grid: { color: "#f3f4f6" } } } } } %>
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+  <h1 class="text-lg font-semibold"><%= ui("Dashboard") %></h1>
+  <%= form_with url: dashboard_path, method: :get, class: "flex items-center gap-2 text-sm" do |form| %>
+    <%= form.label :period, ui("Period"), class: "text-xs text-gray-500" %>
+    <%= form.select :period, [[ui("7 days"), 7], [ui("30 days"), 30], [ui("90 days"), 90]], { selected: stats.days }, { class: "rounded-md border border-gray-200 bg-white px-2 py-1 text-sm", onchange: "this.form.requestSubmit()" } %>
+  <% end %>
+</div>
+
+<section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="<%= ui("Key metrics") %>">
+  <% [
+    [ui("Units in stock"), number_with_delimiter(stats.kpis[:units_in_stock]), stats.kpis[:units_by_design].map { |design, count| "#{ui(design)} #{number_with_delimiter(count)}" }.join(" · ")],
+    [ui("Units shipped"), number_with_delimiter(stats.kpis[:shipped]), ui("Selected period")],
+    [ui("Shipped today"), number_with_delimiter(stats.kpis[:shipped_today]), nil],
+    [ui("Returns"), number_with_delimiter(stats.kpis[:returns]), "#{ui("Return rate")}: #{stats.kpis[:return_rate] == "-" ? "-" : "#{stats.kpis[:return_rate]}%"}"],
+    [ui("Low stock"), number_with_delimiter(stats.kpis[:low_stock]), nil],
+    [ui("Out of stock"), number_with_delimiter(stats.kpis[:out_of_stock]), nil],
+    [ui("Damaged units"), number_with_delimiter(stats.kpis[:damaged]), ui("Selected period")],
+    [ui("Net adjustments"), number_with_delimiter(stats.kpis[:net_adjustments]), ui("Selected period")]
+  ].each do |label, value, detail| %>
+    <% if label == ui("Low stock") %>
+      <%= link_to stock_index_path(status: "low"), class: "rounded-lg border border-gray-200 p-4 hover:border-indigo-600" do %>
+        <p class="text-xs text-gray-500"><%= label %></p><p class="mt-1 text-2xl font-semibold tabular-nums"><%= value %></p>
+        <% if detail %><p class="mt-1 text-xs text-gray-500"><%= detail %></p><% end %>
+      <% end %>
+    <% elsif label == ui("Out of stock") %>
+      <%= link_to stock_index_path(status: "out"), class: "rounded-lg border border-gray-200 p-4 hover:border-indigo-600" do %>
+        <p class="text-xs text-gray-500"><%= label %></p><p class="mt-1 text-2xl font-semibold tabular-nums"><%= value %></p>
+        <% if detail %><p class="mt-1 text-xs text-gray-500"><%= detail %></p><% end %>
+      <% end %>
+    <% else %>
+      <article class="rounded-lg border border-gray-200 p-4">
+        <p class="text-xs text-gray-500"><%= label %></p><p class="mt-1 text-2xl font-semibold tabular-nums"><%= value %></p>
+        <% if detail.present? %><p class="mt-1 text-xs text-gray-500"><%= detail %></p><% end %>
+      </article>
+    <% end %>
+  <% end %>
+</section>
+
+<section class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+  <article class="rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-3 text-sm font-medium"><%= ui("Shipments per day") %></h2>
+    <% if stats.shipments_by_day.values.sum.positive? %>
+      <%= line_chart stats.shipments_by_day, **chart_options %>
+    <% else %>
+      <p class="py-12 text-center text-xs text-gray-500"><%= ui("No data for this period.") %></p>
+    <% end %>
+  </article>
+  <article class="rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-3 text-sm font-medium"><%= ui("Return rate per week") %></h2>
+    <% if stats.returns_by_week.values.any?(&:positive?) %>
+      <%= line_chart stats.returns_by_week, suffix: "%", **chart_options %>
+    <% else %>
+      <p class="py-12 text-center text-xs text-gray-500"><%= ui("No data for this period.") %></p>
+    <% end %>
+  </article>
+  <article class="rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-3 text-sm font-medium"><%= ui("Stock by phone model") %></h2>
+    <% if stats.stock_by_model.any? %>
+      <%= column_chart stats.stock_by_model, **chart_options %>
+    <% else %>
+      <p class="py-12 text-center text-xs text-gray-500"><%= ui("No inventory yet.") %></p>
+    <% end %>
+  </article>
+  <article class="rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-3 text-sm font-medium"><%= ui("Top 10 sellers") %></h2>
+    <% if stats.top_sellers.any? %>
+      <%= bar_chart stats.top_sellers.to_h { |variant, count| [variant.sku, count] }, library: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { color: "#f3f4f6" } }, y: { grid: { color: "#f3f4f6" } } } }, colors: ["#4f46e5"] %>
+    <% else %>
+      <p class="py-12 text-center text-xs text-gray-500"><%= ui("No shipments in this period yet.") %></p>
+    <% end %>
+  </article>
+</section>
+
+<section class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+  <article class="rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-3 text-sm font-medium"><%= ui("Reorder suggestions") %></h2>
+    <% if stats.reorder_items.any? %>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="border-b border-gray-200 text-xs uppercase text-gray-500">
+            <tr><th class="py-2"><%= ui("Variant") %></th><th class="py-2 text-right"><%= ui("Average / day") %></th><th class="py-2 text-right"><%= ui("Stock") %></th><th class="py-2 text-right"><%= ui("Days cover") %></th><th class="py-2 text-right"><%= ui("Order") %></th></tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% stats.reorder_items.each do |item| %>
+              <tr>
+                <td class="whitespace-nowrap py-2 font-mono text-xs"><%= item.variant.sku %></td>
+                <td class="py-2 text-right tabular-nums"><%= number_with_precision(item.average_daily, precision: 2) %></td>
+                <td class="py-2 text-right tabular-nums"><%= number_with_delimiter(item.variant.current_stock) %></td>
+                <td class="py-2 text-right tabular-nums"><%= item.days_cover ? number_with_precision(item.days_cover, precision: 1) : "-" %></td>
+                <td class="py-2 text-right tabular-nums"><%= number_with_delimiter(item.suggested_order) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="py-8 text-center text-xs text-gray-500"><%= ui("No shipments in the last 30 days.") %></p>
+    <% end %>
+  </article>
+
+  <article class="rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-1 text-sm font-medium"><%= ui("Stock matrix") %></h2>
+    <p class="mb-3 text-xs text-gray-500"><%= ui("Phone model by design") %></p>
+    <% if stats.stock_matrix.any? %>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="border-b border-gray-200 text-xs uppercase text-gray-500">
+            <tr><th class="py-2"><%= ui("Phone model") %></th><% stats.designs.each do |design| %><th class="py-2 text-right"><%= ui(design) %></th><% end %></tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% stats.stock_by_model.each_key do |model| %>
+              <tr>
+                <th class="py-2 font-normal"><%= model.sub(/^IP/, "") %></th>
+                <% stats.designs.each do |design| %>
+                  <% variant = stats.stock_matrix[[model, design]] %>
+                  <% quantity = variant&.current_stock || 0 %>
+                  <% tint = quantity.zero? ? "bg-gray-50" : (variant && quantity <= variant.low_stock_threshold ? "bg-red-50" : "") %>
+                  <td class="py-2 text-right tabular-nums <%= tint %>"><%= number_with_delimiter(quantity) %></td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-3 text-xs text-gray-500"><%= ui("Strap") %>: <span class="tabular-nums"><%= number_with_delimiter(stats.strap_stock) %></span></p>
+    <% else %>
+      <p class="py-8 text-center text-xs text-gray-500"><%= ui("No inventory yet.") %></p>
+    <% end %>
+  </article>
+</section>
+
+<section class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+  <article class="rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-1 text-sm font-medium"><%= ui("Insights") %></h2>
+    <p class="text-xs text-gray-500"><%= ui("Net adjustments") %> · <%= ui("Selected period") %></p>
+    <p class="mt-1 text-2xl font-semibold tabular-nums"><%= "%+d" % stats.kpis[:net_adjustments] %></p>
+    <p class="mt-1 text-xs text-gray-500"><%= ui("Large adjustment totals may indicate missed scans.") %></p>
+    <h3 class="mt-5 text-sm font-medium"><%= ui("Highest return rates") %></h3>
+    <% if stats.return_rates_by_variant.any? %>
+      <table class="mt-2 w-full text-left text-sm">
+        <thead class="border-b border-gray-200 text-xs uppercase text-gray-500"><tr><th class="py-2"><%= ui("Variant") %></th><th class="py-2 text-right"><%= ui("Returns") %></th><th class="py-2 text-right"><%= ui("Rate") %></th></tr></thead>
+        <tbody class="divide-y divide-gray-100">
+          <% stats.return_rates_by_variant.each do |variant, returned, rate| %>
+            <tr><td class="py-2 font-mono text-xs"><%= variant.sku %></td><td class="py-2 text-right tabular-nums"><%= returned %></td><td class="py-2 text-right tabular-nums"><%= rate %>%</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <p class="mt-2 text-xs text-gray-500"><%= ui("No variants have at least five shipments in this period.") %></p>
+    <% end %>
+  </article>
+
+  <article class="rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-1 text-sm font-medium"><%= ui("Dead stock") %></h2>
+    <p class="mb-3 text-xs text-gray-500"><%= ui("In-stock variants with no shipments in the last 60 days.") %></p>
+    <% if stats.dead_stock.any? %>
+      <ul class="divide-y divide-gray-100">
+        <% stats.dead_stock.each do |variant| %>
+          <li class="flex justify-between gap-3 py-2 text-sm"><span class="font-mono text-xs"><%= variant.sku %></span><span class="tabular-nums"><%= number_with_delimiter(variant.current_stock) %></span></li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="py-6 text-center text-xs text-gray-500"><%= ui("No dead stock found.") %></p>
+    <% end %>
+  </article>
+</section>
+
+<section class="mt-6 rounded-lg border border-gray-200 p-4">
+  <h2 class="mb-3 text-sm font-medium"><%= ui("Recent activity") %></h2>
+  <% if stats.recent_activity.any? %>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="border-b border-gray-200 text-xs uppercase text-gray-500"><tr><th class="py-2"><%= ui("Time") %></th><th class="py-2"><%= ui("Action") %></th><th class="py-2"><%= ui("SKU") %></th><th class="py-2 text-right"><%= ui("Quantity") %></th><th class="py-2"><%= ui("Reference") %></th></tr></thead>
+        <tbody class="divide-y divide-gray-100">
+          <% stats.recent_activity.each do |movement| %>
+            <tr>
+              <td class="whitespace-nowrap py-2 text-xs text-gray-500"><%= l(movement.created_at, format: :short) %></td>
+              <td class="py-2"><%= ui(movement.kind.humanize) %></td>
+              <td class="py-2 font-mono text-xs"><%= movement.variant.sku %></td>
+              <td class="py-2 text-right tabular-nums"><%= movement.quantity %></td>
+              <td class="py-2 text-xs text-gray-500"><%= movement.reference.presence || "-" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <p class="py-6 text-center text-xs text-gray-500"><%= ui("No movement history yet.") %></p>
+  <% end %>
+</section>

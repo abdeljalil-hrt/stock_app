@@ -1,0 +1,14 @@
+<div class="mb-5">
+  <h1 class="text-lg font-semibold"><%= ui("Edit expense") %></h1>
+</div>
+<%= form_with model: @transaction, url: finance_expense_path(@transaction), method: :patch, local: true, class: "grid grid-cols-1 gap-3 sm:grid-cols-2" do |form| %>
+  <% if @transaction.errors.any? %><div class="sm:col-span-2 text-sm text-red-700"><%= @transaction.errors.full_messages.to_sentence %></div><% end %>
+  <div><%= form.label :date, ui("Date"), class: "mb-1 block text-xs text-gray-500" %><%= form.date_field :date, required: true, class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+  <div><%= form.label :amount, ui("Amount"), class: "mb-1 block text-xs text-gray-500" %><%= form.number_field :amount, value: @transaction.amount, step: "0.01", min: "0.01", required: true, class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+  <div><%= form.label :category_id, ui("Category"), class: "mb-1 block text-xs text-gray-500" %><%= form.collection_select :category_id, @categories, :id, :name, {}, required: true, class: "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm" %></div>
+  <div><%= form.label :account_id, ui("Account"), class: "mb-1 block text-xs text-gray-500" %><%= form.collection_select :account_id, @accounts, :id, :name, {}, required: true, class: "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm" %></div>
+  <div><%= form.label :pot_id, ui("Pot (optional)"), class: "mb-1 block text-xs text-gray-500" %><%= form.collection_select :pot_id, @pots, :id, :name, { include_blank: true }, class: "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm" %></div>
+  <div><%= form.label :purchase_order_reference, ui("Supplier order reference (for cost of goods)"), class: "mb-1 block text-xs text-gray-500" %><%= form.text_field :purchase_order_reference, placeholder: "po123", class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+  <div class="sm:col-span-2"><%= form.label :note, ui("Note"), class: "mb-1 block text-xs text-gray-500" %><%= form.text_field :note, class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+  <div class="sm:col-span-2 flex gap-3"><%= form.submit ui("Save expense"), class: "cursor-pointer rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700" %><%= link_to ui("Cancel"), finance_expenses_path, class: "py-2 text-sm text-gray-600" %></div>
+<% end %>

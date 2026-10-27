@@ -1,0 +1,43 @@
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+  <div>
+    <h1 class="text-lg font-semibold"><%= ui(@status == "low" ? "Low stock" : @status == "out" ? "Out of stock" : "Current stock") %></h1>
+    <p class="mt-1 text-xs text-gray-500"><%= ui("Stock is calculated from the movement ledger.") %></p>
+  </div>
+</div>
+
+<%= form_with url: stock_index_path, method: :get, class: "mb-5 flex flex-wrap gap-2" do |form| %>
+  <%= form.hidden_field :status, value: @status if @status.in?(%w[low out]) %>
+  <%= form.search_field :q, value: @search, placeholder: ui("Search SKU or phone model"), class: "min-w-48 rounded-md border border-gray-200 px-3 py-2 text-sm" %>
+  <%= form.select :design, options_for_select([[ui("All designs"), ""]] + @designs.map { |design| [ui(design), design] }, @design), {}, class: "rounded-md border border-gray-200 bg-white px-3 py-2 text-sm" %>
+  <%= form.submit ui("Filter"), class: "rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" %>
+<% end %>
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+  <% @variants_by_design.each do |design, variants| %>
+    <section class="min-w-0">
+      <div class="mb-2 flex items-baseline justify-between gap-3">
+        <h2 class="text-sm font-medium"><%= ui(design) %></h2>
+        <p class="text-xs text-gray-500"><%= variants.size %> <%= ui("variants") %> · <span class="tabular-nums"><%= number_with_delimiter(variants.sum(&:current_stock)) %></span> <%= ui("items") %></p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="border-b border-gray-200 text-xs uppercase text-gray-500">
+            <tr><th class="py-2"><%= ui("SKU") %></th><th class="py-2"><%= ui("Phone model") %></th><th class="py-2 text-right"><%= ui("Stock") %></th></tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% variants.each do |variant| %>
+              <tr>
+                <td class="whitespace-nowrap py-2 font-mono text-xs"><%= variant.sku.sub(/IP(?=\d)/, "") %></td>
+                <td class="py-2"><%= variant.phone_model.sub(/^IP/, "") %></td>
+                <td class="py-2 text-right font-medium tabular-nums <%= variant.current_stock <= variant.low_stock_threshold ? 'text-red-600' : 'text-gray-900' %>"><%= number_with_delimiter(variant.current_stock) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% end %>
+  <% if @variants_by_design.empty? %>
+    <p class="text-xs text-gray-500"><%= ui("No variants match your filters.") %></p>
+  <% end %>
+</div>

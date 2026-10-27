@@ -1,0 +1,26 @@
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <h1 class="text-lg font-semibold"><%= ui("Supplier orders") %></h1>
+  <%= link_to ui("New supplier order"), new_finance_purchase_order_path, class: "rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700" %>
+</div>
+<div class="overflow-x-auto">
+  <table class="w-full min-w-[760px] text-left text-sm">
+    <thead class="border-b border-gray-200 text-xs uppercase text-gray-500">
+      <tr><th class="py-2"><%= ui("PO") %></th><th class="py-2"><%= ui("Supplier") %></th><th class="py-2"><%= ui("Status") %></th><th class="py-2"><%= ui("Ordered on") %></th><th class="py-2"><%= ui("Expected on") %></th><th class="py-2 text-right"><%= ui("Landed cost") %></th></tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      <% @purchase_orders.each do |order| %>
+        <tr>
+          <td class="py-2"><%= link_to "PO #{order.number}", finance_purchase_order_path(order), class: "font-medium text-indigo-600 hover:text-indigo-700" %></td>
+          <td class="py-2"><%= order.supplier %></td>
+          <td class="py-2"><%= ui(order.status.humanize) %></td>
+          <td class="py-2"><%= order.ordered_on ? l(order.ordered_on, format: :short) : "—" %></td>
+          <td class="py-2"><%= order.expected_on ? l(order.expected_on, format: :short) : "—" %></td>
+          <td class="whitespace-nowrap py-2 text-right tabular-nums"><%= format_money(order.landed_total_cents) %></td>
+        </tr>
+      <% end %>
+      <% if @purchase_orders.empty? %>
+        <tr><td colspan="6" class="py-8 text-center text-xs text-gray-500"><%= ui("No supplier orders yet.") %> <%= link_to ui("New supplier order"), new_finance_purchase_order_path, class: "text-indigo-600 hover:text-indigo-700" %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

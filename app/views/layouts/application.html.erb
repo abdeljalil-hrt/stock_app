@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>">
+  <head>
+    <title>Stock</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body data-controller="sidebar" class="min-h-screen bg-white font-sans text-sm text-gray-900">
+    <% show_sidebar = authenticated? && !%w[sessions passwords].include?(controller_name) %>
+    <% if show_sidebar %>
+      <div class="flex h-12 items-center justify-between border-b border-gray-200 px-4 md:hidden">
+        <span class="text-sm font-semibold">Stock</span>
+        <button type="button" aria-label="Open menu" data-action="sidebar#toggle" class="rounded-md p-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </div>
+      <%= render "shared/sidebar" %>
+    <% else %>
+      <div class="flex justify-end border-b border-gray-200 px-4 py-2">
+        <%= button_to(I18n.locale == :en ? "Français" : "English", locale_path(I18n.locale == :en ? :fr : :en), method: :post, class: "rounded-md px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900") %>
+      </div>
+    <% end %>
+
+    <main class="<%= show_sidebar ? 'md:pl-52' : '' %>">
+      <div class="mx-auto max-w-6xl px-6 py-8">
+        <% if flash[:alert] && !content_for?(:scan_feedback) %>
+          <p class="mb-5 text-sm text-red-700"><%= flash[:alert] %></p>
+        <% end %>
+        <% if flash[:notice] && !content_for?(:scan_feedback) %>
+          <p class="mb-5 text-sm text-gray-700"><%= flash[:notice] %></p>
+        <% end %>
+        <%= yield %>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+<div class="mb-6 flex items-center justify-between print:hidden">
+  <div>
+    <h1 class="text-3xl font-bold"><%= ui("Barcode labels") %></h1>
+    <p class="mt-1 text-slate-600"><%= ui("Print on labels sized approximately 60 × 30 mm.") %></p>
+  </div>
+  <button type="button" onclick="window.print()" class="rounded bg-blue-700 px-4 py-2 font-semibold text-white"><%= ui("Print labels") %></button>
+</div>
+
+<div class="label-grid">
+  <% @variants.each do |variant| %>
+    <article class="label">
+      <img src="<%= barcode_data_uri(variant.sku) %>" alt="Code 128 barcode for <%= variant.sku %>" class="barcode">
+      <p class="sku"><%= variant.sku %></p>
+      <p class="name"><%= variant.name %></p>
+    </article>
+  <% end %>
+</div>

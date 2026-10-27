@@ -1,0 +1,45 @@
+<%= form_with model: @purchase_order, url: @purchase_order.persisted? ? finance_purchase_order_path(@purchase_order) : finance_purchase_orders_path, method: @purchase_order.persisted? ? :patch : :post, local: true, data: { turbo: "false", controller: "purchase-order-lines", action: "input->purchase-order-lines#updateTotal" } do |form| %>
+  <% if @purchase_order.errors.any? %><div class="mb-4 text-sm text-red-700"><%= @purchase_order.errors.full_messages.to_sentence %></div><% end %>
+  <section class="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 p-4 sm:grid-cols-2">
+    <div><%= form.label :supplier, ui("Supplier name"), class: "mb-1 block text-xs text-gray-500" %><%= form.text_field :supplier, required: true, class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+    <div><%= form.label :ordered_on, ui("Ordered on"), class: "mb-1 block text-xs text-gray-500" %><%= form.date_field :ordered_on, class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+    <div><%= form.label :expected_on, ui("Expected on"), class: "mb-1 block text-xs text-gray-500" %><%= form.date_field :expected_on, class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+    <div><%= form.label :note, ui("Note"), class: "mb-1 block text-xs text-gray-500" %><%= form.text_field :note, class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+  </section>
+
+  <section class="mt-5 rounded-lg border border-gray-200 p-4">
+    <div class="mb-3 flex items-center justify-between">
+      <h2 class="text-sm font-medium"><%= ui("Lines") %></h2>
+      <button type="button" data-action="purchase-order-lines#add" class="text-sm text-indigo-600 hover:text-indigo-700"><%= ui("Add line") %></button>
+    </div>
+    <input type="search" data-purchase-order-lines-target="search" data-action="input->purchase-order-lines#filterVariants" placeholder="<%= ui("Search SKU or product name") %>" class="mb-3 w-full rounded-md border border-gray-200 px-3 py-2 text-sm">
+    <div data-purchase-order-lines-target="rows" class="space-y-3">
+      <% @purchase_order.lines.reject(&:marked_for_destruction?).each_with_index do |line, index| %>
+        <%= render "line_fields", line: line, index: index %>
+      <% end %>
+    </div>
+    <template data-purchase-order-lines-target="template"><%= render "line_fields", line: PurchaseOrderLine.new, index: "NEW_RECORD" %></template>
+    <p class="mt-3 text-right text-sm tabular-nums"><%= ui("Goods total") %>: <span data-purchase-order-lines-target="goodsTotal">0 DH</span></p>
+  </section>
+
+  <section class="mt-5 rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-3 text-sm font-medium"><%= ui("Additional costs") %></h2>
+    <div class="space-y-3">
+      <% @purchase_order.costs.reject(&:marked_for_destruction?).each do |cost| %>
+        <% kind = cost.kind %>
+        <% label = { "freight" => ui("Delivery to Morocco"), "customs" => ui("Customs"), "local_transport" => ui("Transport to warehouse"), "other" => ui("Other") }.fetch(kind) %>
+        <% fields = "costs[#{kind}]" %>
+        <div class="grid grid-cols-1 items-end gap-2 sm:grid-cols-4">
+          <label class="text-xs text-gray-500"><%= label %><%= number_field_tag "#{fields}[amount]", cost.amount_cents.positive? ? format("%.2f", cost.amount_cents / 100.0) : nil, min: 0, step: "0.01", class: "mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></label>
+          <label class="text-xs text-gray-500"><%= ui("Paid on (optional)") %><%= date_field_tag "#{fields}[paid_on]", cost.paid_on, class: "mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></label>
+          <label class="text-xs text-gray-500"><%= ui("Account (optional)") %><%= select_tag "#{fields}[account_id]", options_for_select([["", ""]] + @accounts.map { |account| [account.name, account.id] }, cost.account_id), class: "mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm" %></label>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <div class="mt-5 flex flex-wrap justify-end gap-3">
+    <%= form.submit ui("Save"), name: "commit_action", value: "draft", class: "cursor-pointer rounded-md border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" %>
+    <%= form.submit ui("Save and mark as ordered"), name: "commit_action", value: "ordered", class: "cursor-pointer rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700" %>
+  </div>
+<% end %>
