@@ -29,7 +29,10 @@ Rails.application.routes.draw do
       post :create_adjustment, on: :member
     end
     get "balance-check", to: redirect("/finance/balance_checks")
-    resources :reports, only: :index
+    resources :reports, only: :index do
+      get :export, on: :collection
+      post :close_month, on: :collection
+    end
     get "settings", to: "settings#show"
   end
 

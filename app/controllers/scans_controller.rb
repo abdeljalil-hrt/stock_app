@@ -23,11 +23,12 @@ class ScansController < ApplicationController
     new_stock = nil
 
     variant.with_lock do
+      reference = params[:reference].to_s.strip.presence
       movement = variant.stock_movements.build(
         kind: @mode,
         quantity: StockMovement::FIXED_QUANTITIES.fetch(@mode),
-        reference: params[:reference].to_s.strip.presence,
-        unit_cost_cents: @mode == "ship" && variant.cost_price.present? ? (variant.cost_price.to_d * 100).round.to_i : nil
+        reference: reference,
+        unit_cost_cents: unit_cost_for(variant, reference)
       )
       new_stock = variant.stock if movement.save
     end
@@ -74,5 +75,24 @@ class ScansController < ApplicationController
 
   def set_mode
     @mode = params[:mode]
+  end
+
+  def unit_cost_for(variant, reference)
+    if @mode == "ship"
+      return variant.cost_price.present? ? (variant.cost_price.to_d * 100).round.to_i : nil
+    end
+
+    return unless StockMovement::RETURN_KINDS.include?(@mode)
+
+    if reference.present?
+      return_count = variant.stock_movements.where(kind: StockMovement::RETURN_KINDS, reference: reference).count
+      shipment_cost = variant.stock_movements.where(kind: "ship", reference: reference)
+        .order(:created_at, :id)
+        .offset(return_count)
+        .pick(:unit_cost_cents)
+      return shipment_cost if shipment_cost.present?
+    end
+
+    variant.cost_price.present? ? (variant.cost_price.to_d * 100).round.to_i : nil
   end
 end

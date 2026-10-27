@@ -63,6 +63,20 @@ class ScansControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to scan_path(:ship, reference: "ORDER-1")
   end
 
+  test "shipment and referenced return preserve the shipping-time unit cost" do
+    @variant.update!(cost_price: 75.50)
+
+    post scan_path(:ship), params: { sku: @variant.sku, reference: "COST-ORDER" }
+    shipment = StockMovement.order(:id).last
+    assert_equal 7_550, shipment.unit_cost_cents
+
+    @variant.update!(cost_price: 90)
+    post scan_path(:return_good), params: { sku: @variant.sku, reference: "COST-ORDER" }
+    returned = StockMovement.order(:id).last
+
+    assert_equal 7_550, returned.unit_cost_cents
+  end
+
   test "good return scan adds one unit back into stock" do
     assert_difference -> { @variant.reload.stock }, 1 do
       assert_difference "StockMovement.count", 1 do

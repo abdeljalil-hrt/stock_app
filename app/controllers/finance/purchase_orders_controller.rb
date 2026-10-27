@@ -32,7 +32,7 @@ module Finance
     def show
       @purchase_order.costs.reload
       @lines = @purchase_order.lines.includes(:variant, :receipts).order(:id)
-      @accounts = Account.order(:name)
+      @accounts = Account.where(active: true).order(:name)
       @cost = @purchase_order.costs.build(paid_on: Date.current)
     end
 
@@ -146,7 +146,7 @@ module Finance
 
     def load_options
       @variants = Variant.order(:sku)
-      @accounts = Account.order(:name)
+      @accounts = Account.where(active: true).order(:name)
     end
 
     def build_default_costs

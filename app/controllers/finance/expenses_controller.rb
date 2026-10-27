@@ -113,8 +113,8 @@ module Finance
     private
 
     def load_form_options
-      @categories = Category.order(:name)
-      @accounts = Account.order(:name)
+      @categories = Category.where.not(kind: "transfer").order(:name)
+      @accounts = Account.where(active: true).order(:name)
       @pots = Pot.order(:name)
       last_account_id = Transaction.expenses.order(created_at: :desc).where.not(account_id: nil).pick(:account_id)
       @default_account = @accounts.find { |account| account.id == last_account_id } || @accounts.first
