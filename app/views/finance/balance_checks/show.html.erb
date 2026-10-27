@@ -1,2 +1,36 @@
-<h1 class="text-lg font-semibold"><%= ui("Balance check") %></h1>
-<p class="mt-2 text-xs text-gray-500"><%= ui("No balance checks yet.") %></p>
+<div class="mb-5 flex items-center justify-between gap-3">
+  <div>
+    <h1 class="text-lg font-semibold"><%= ui("Balance check result") %></h1>
+    <p class="mt-1 text-xs text-gray-500"><%= @balance_check.account.name %> · <%= l(@balance_check.checked_on, format: :short) %></p>
+  </div>
+  <%= link_to ui("Back to balance checks"), finance_balance_checks_path, class: "text-sm text-indigo-600 hover:text-indigo-700" %>
+</div>
+<% if flash[:notice].present? %><p class="mb-4 text-sm text-green-700" role="status"><%= flash[:notice] %></p><% end %>
+<section class="rounded-lg border border-gray-200 p-4">
+  <dl class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div><dt class="text-xs text-gray-500"><%= ui("Expected") %></dt><dd class="mt-1 text-sm tabular-nums"><%= format_money(@balance_check.expected_cents) %></dd></div>
+    <div><dt class="text-xs text-gray-500"><%= ui("Real") %></dt><dd class="mt-1 text-sm tabular-nums"><%= format_money(@balance_check.real_cents) %></dd></div>
+    <div><dt class="text-xs text-gray-500"><%= ui("Difference") %></dt>
+      <dd class="mt-1 text-sm font-medium tabular-nums <%= @balance_check.balanced? ? "text-green-700" : "text-red-700" %>">
+        <% if @balance_check.balanced? %>
+          <%= ui("Balanced") %>
+        <% elsif @balance_check.difference_cents.negative? %>
+          <%= ui("Missing") %> <%= format_money(@balance_check.difference_cents.abs) %>
+        <% else %>
+          <%= ui("Extra") %> <%= format_money(@balance_check.difference_cents) %>
+        <% end %>
+      </dd>
+    </div>
+  </dl>
+  <% if @balance_check.note.present? %><p class="mt-4 border-t border-gray-100 pt-3 text-xs text-gray-500"><%= @balance_check.note %></p><% end %>
+  <% if !@balance_check.balanced? && !@balance_check.adjustment_transaction %>
+    <%= button_to ui("Create adjustment"), create_adjustment_finance_balance_check_path(@balance_check), method: :post, class: "mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700" %>
+  <% elsif @balance_check.adjustment_transaction %>
+    <p class="mt-4 text-xs text-gray-500"><%= ui("Adjustment transaction created.") %></p>
+  <% end %>
+</section>
+
+<section class="mt-6">
+  <h2 class="mb-2 text-sm font-medium"><%= ui("Past balance checks") %></h2>
+  <%= render "history", checks: @history %>
+</section>

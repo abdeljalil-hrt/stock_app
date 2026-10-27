@@ -25,7 +25,10 @@ Rails.application.routes.draw do
       post :add_cost, on: :member
       post :receive, on: :member
     end
-    get "balance-check", to: "balance_checks#show", as: :balance_check
+    resources :balance_checks, only: %i[index create show] do
+      post :create_adjustment, on: :member
+    end
+    get "balance-check", to: redirect("/finance/balance_checks")
     resources :reports, only: :index
     get "settings", to: "settings#show"
   end

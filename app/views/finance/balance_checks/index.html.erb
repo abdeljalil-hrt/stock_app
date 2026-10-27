@@ -1,0 +1,40 @@
+<div class="mb-5">
+  <h1 class="text-lg font-semibold"><%= ui("Balance check") %></h1>
+  <p class="mt-1 text-xs text-gray-500"><%= ui("Compare your account balances with the ledger.") %></p>
+</div>
+<% if flash[:alert].present? %><p class="mb-4 text-sm text-red-700" role="alert"><%= flash[:alert] %></p><% end %>
+<% if @balance_check&.errors&.any? %><p class="mb-4 text-sm text-red-700" role="alert"><%= @balance_check.errors.full_messages.to_sentence %></p><% end %>
+
+<section class="rounded-lg border border-gray-200 p-4">
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[700px] text-left text-sm">
+      <thead class="border-b border-gray-200 text-xs uppercase text-gray-500">
+        <tr><th class="py-2"><%= ui("Account") %></th><th class="py-2 text-right"><%= ui("Expected balance") %></th><th class="py-2"><%= ui("Real balance (DH)") %></th><th class="py-2"><%= ui("Note (optional)") %></th><th class="py-2"></th></tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <% @accounts.each do |account| %>
+          <tr>
+            <td class="py-2 font-medium"><%= account.name %></td>
+            <td class="py-2 text-right tabular-nums"><%= format_money(@expected_balances.fetch(account)) %></td>
+            <td colspan="3" class="py-2">
+              <%= form_with url: finance_balance_checks_path, scope: :balance_check, local: true, data: { turbo: "false" }, class: "grid grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(8rem,1fr)_minmax(10rem,2fr)_auto]" do |form| %>
+                <%= form.hidden_field :account_id, value: account.id %>
+                <div><%= form.label :real_balance, ui("Real balance"), class: "sr-only" %><%= form.number_field :real_balance, min: 0, step: "0.01", required: true, inputmode: "decimal", class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm tabular-nums" %></div>
+                <div><%= form.label :note, ui("Note"), class: "sr-only" %><%= form.text_field :note, placeholder: ui("Optional note"), class: "w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></div>
+                <%= form.submit ui("Check"), class: "cursor-pointer rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700" %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+        <% if @accounts.empty? %>
+          <tr><td colspan="5" class="py-8 text-center text-xs text-gray-500"><%= ui("No active accounts.") %></td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="mt-6">
+  <h2 class="mb-2 text-sm font-medium"><%= ui("Past balance checks") %></h2>
+  <%= render "history", checks: @checks %>
+</section>

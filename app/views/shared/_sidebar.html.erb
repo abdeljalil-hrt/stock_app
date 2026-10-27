@@ -15,7 +15,7 @@
   [ui("Overview"), finance_overview_path, request.path == finance_overview_path],
   [ui("Expenses"), finance_expenses_path, request.path.start_with?("/finance/expenses")],
   [ui("Supplier orders"), finance_purchase_orders_path, request.path.start_with?("/finance/purchase_orders")],
-  [ui("Balance check"), finance_balance_check_path, request.path.start_with?("/finance/balance-check")],
+  [ui("Balance check"), finance_balance_checks_path, request.path.start_with?("/finance/balance_checks")],
   [ui("Reports"), finance_reports_path, request.path.start_with?("/finance/reports")],
   [ui("Settings"), finance_settings_path, request.path.start_with?("/finance/settings")]
 ] %>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_27_114000) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_27_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -18,7 +18,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_27_114000) do
     t.string "name", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "active", default: true, null: false
+    t.integer "opening_balance_cents", default: 0, null: false
     t.index ["name"], name: "index_accounts_on_name", unique: true
+  end
+
+  create_table "balance_checks", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.integer "expected_cents", null: false
+    t.integer "real_cents", null: false
+    t.integer "difference_cents", null: false
+    t.date "checked_on", null: false
+    t.text "note"
+    t.bigint "adjustment_transaction_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_balance_checks_on_account_id"
+    t.index ["adjustment_transaction_id"], name: "index_balance_checks_on_adjustment_transaction_id"
+    t.index ["checked_on"], name: "index_balance_checks_on_checked_on"
   end
 
   create_table "categories", force: :cascade do |t|
@@ -159,6 +176,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_27_114000) do
     t.index ["sku"], name: "index_variants_on_sku", unique: true
   end
 
+  add_foreign_key "balance_checks", "accounts"
+  add_foreign_key "balance_checks", "transactions", column: "adjustment_transaction_id"
   add_foreign_key "category_keywords", "categories"
   add_foreign_key "purchase_order_costs", "accounts"
   add_foreign_key "purchase_order_costs", "purchase_orders"

@@ -16,7 +16,7 @@ module Finance
         finance_overview_path,
         finance_expenses_path,
         finance_purchase_orders_path,
-        finance_balance_check_path,
+        finance_balance_checks_path,
         finance_reports_path,
         finance_settings_path
       ].each do |path|
@@ -60,7 +60,7 @@ module Finance
         finance_overview_path,
         finance_expenses_path,
         finance_purchase_orders_path,
-        finance_balance_check_path,
+        finance_balance_checks_path,
         finance_reports_path,
         finance_settings_path
       ]
