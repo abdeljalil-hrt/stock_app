@@ -4,7 +4,6 @@ class PurchaseOrder < ApplicationRecord
 
   has_many :lines, class_name: "PurchaseOrderLine", dependent: :destroy, inverse_of: :purchase_order
   has_many :costs, class_name: "PurchaseOrderCost", dependent: :destroy, inverse_of: :purchase_order
-  has_many :transactions, dependent: :nullify
   has_many :purchase_receipts, through: :lines, source: :receipts
 
   accepts_nested_attributes_for :lines, allow_destroy: true

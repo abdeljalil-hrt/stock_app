@@ -1,14 +1,8 @@
 <div data-line-row class="grid grid-cols-1 items-end gap-2 rounded-md border border-gray-100 p-3 sm:grid-cols-[minmax(0,2fr)_1fr_1fr_auto]">
   <label class="text-xs text-gray-500"><%= ui("Product") %>
-    <select name="lines[<%= index %>][variant_id]" required class="mt-1 w-full rounded-md border border-gray-200 bg-white px-2 py-2 text-sm">
-      <option value=""><%= ui("Choose product") %></option>
-      <% @variants.each do |variant| %>
-        <% search = "#{variant.sku} #{variant.name}" %>
-        <option value="<%= variant.id %>" data-variant-option data-search-text="<%= search.downcase %>" <%= "selected" if line.variant_id == variant.id %>><%= variant.sku %> — <%= variant.name %></option>
-      <% end %>
-    </select>
+    <input type="text" name="lines[<%= index %>][product]" value="<%= line.product_entry.presence || (line.variant && "#{line.variant.sku} — #{line.variant.name}") %>" list="purchase-order-products" autocomplete="off" placeholder="<%= ui("Type product name or SKU") %>" required class="mt-1 w-full rounded-md border border-gray-200 px-2 py-2 text-sm">
   </label>
   <label class="text-xs text-gray-500"><%= ui("Quantity") %><input type="number" name="lines[<%= index %>][quantity]" value="<%= line.quantity %>" min="1" required data-quantity class="mt-1 w-full rounded-md border border-gray-200 px-2 py-2 text-sm"></label>
-  <label class="text-xs text-gray-500"><%= ui("Unit price (DH)") %><input type="number" name="lines[<%= index %>][unit_price]" value="<%= line.unit_price_cents.to_i.positive? ? format("%.2f", line.unit_price_cents / 100.0) : nil %>" min="0" step="0.01" required data-price class="mt-1 w-full rounded-md border border-gray-200 px-2 py-2 text-sm"></label>
+  <label class="text-xs text-gray-500"><%= ui("Price per piece (DH)") %><input type="number" name="lines[<%= index %>][unit_price]" value="<%= line.unit_price_cents.to_i.positive? ? format("%.2f", line.unit_price_cents / 100.0) : nil %>" min="0" step="0.01" required data-price class="mt-1 w-full rounded-md border border-gray-200 px-2 py-2 text-sm"></label>
   <button type="button" data-action="purchase-order-lines#remove" aria-label="<%= ui("Remove line") %>" class="rounded-md px-2 py-2 text-sm text-gray-500 hover:bg-gray-50">×</button>
 </div>

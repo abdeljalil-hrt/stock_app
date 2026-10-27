@@ -158,17 +158,33 @@ module Finance
     def assign_lines(order, raw_lines)
       order.lines.to_a.each(&:mark_for_destruction)
       unsafe_hash(raw_lines).each_value do |attributes|
-        variant_id = attributes[:variant_id].presence
+        product_entry = attributes[:product].to_s.strip
+        variant = find_variant_for(product_entry)
         quantity = attributes[:quantity].to_i
         unit_price_cents = ExpenseLineParser.amount_cents(attributes[:unit_price])
-        next if variant_id.blank? && quantity.zero? && attributes[:unit_price].blank?
+        next if product_entry.blank? && quantity.zero? && attributes[:unit_price].blank?
 
         order.lines.build(
-          variant_id: variant_id,
+          variant: variant,
+          product_entry: product_entry,
           quantity: quantity,
           unit_price_cents: unit_price_cents
         )
       end
+    end
+
+    def find_variant_for(product_entry)
+      return if product_entry.blank?
+
+      normalized = product_entry.downcase
+      matches = @variants.select do |variant|
+        normalized == variant.sku.downcase ||
+          normalized == "#{variant.sku} — #{variant.name}".downcase
+      end
+      return matches.first if matches.one?
+
+      name_matches = @variants.select { |variant| normalized == variant.name.downcase }
+      name_matches.one? ? name_matches.first : nil
     end
 
     def assign_costs(order, raw_costs)

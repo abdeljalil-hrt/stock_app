@@ -12,7 +12,16 @@
       <h2 class="text-sm font-medium"><%= ui("Lines") %></h2>
       <button type="button" data-action="purchase-order-lines#add" class="text-sm text-indigo-600 hover:text-indigo-700"><%= ui("Add line") %></button>
     </div>
-    <input type="search" data-purchase-order-lines-target="search" data-action="input->purchase-order-lines#filterVariants" placeholder="<%= ui("Search SKU or product name") %>" class="mb-3 w-full rounded-md border border-gray-200 px-3 py-2 text-sm">
+    <datalist id="purchase-order-products">
+      <% @variants.each do |variant| %>
+        <option value="<%= "#{variant.sku} — #{variant.name}" %>"></option>
+        <option value="<%= variant.sku %>"></option>
+      <% end %>
+      <% @variants.group_by { |variant| variant.name.downcase }.each_value do |variants| %>
+        <% if variants.one? %><option value="<%= variants.first.name %>"></option><% end %>
+      <% end %>
+    </datalist>
+    <p class="mb-3 text-xs text-gray-500"><%= ui("Type a product name or SKU; product names must be unique in the catalog.") %></p>
     <div data-purchase-order-lines-target="rows" class="space-y-3">
       <% @purchase_order.lines.reject(&:marked_for_destruction?).each_with_index do |line, index| %>
         <%= render "line_fields", line: line, index: index %>
@@ -27,10 +36,10 @@
     <div class="space-y-3">
       <% @purchase_order.costs.reject(&:marked_for_destruction?).each do |cost| %>
         <% kind = cost.kind %>
-        <% label = { "freight" => ui("Delivery to Morocco"), "customs" => ui("Customs"), "local_transport" => ui("Transport to warehouse"), "other" => ui("Other") }.fetch(kind) %>
+        <% label = { "freight" => ui("Freight price"), "customs" => ui("Customs (optional; can be added later)"), "local_transport" => ui("Transport to warehouse"), "other" => ui("Other") }.fetch(kind) %>
         <% fields = "costs[#{kind}]" %>
         <div class="grid grid-cols-1 items-end gap-2 sm:grid-cols-4">
-          <label class="text-xs text-gray-500"><%= label %><%= number_field_tag "#{fields}[amount]", cost.amount_cents.positive? ? format("%.2f", cost.amount_cents / 100.0) : nil, min: 0, step: "0.01", class: "mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></label>
+          <label class="text-xs text-gray-500"><%= label %><%= number_field_tag "#{fields}[amount]", cost.amount_cents.to_i.positive? ? format("%.2f", cost.amount_cents / 100.0) : nil, min: 0, step: "0.01", class: "mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></label>
           <label class="text-xs text-gray-500"><%= ui("Paid on (optional)") %><%= date_field_tag "#{fields}[paid_on]", cost.paid_on, class: "mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm" %></label>
           <label class="text-xs text-gray-500"><%= ui("Account (optional)") %><%= select_tag "#{fields}[account_id]", options_for_select([["", ""]] + @accounts.map { |account| [account.name, account.id] }, cost.account_id), class: "mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm" %></label>
         </div>

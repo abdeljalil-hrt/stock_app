@@ -2,8 +2,6 @@ class Transaction < ApplicationRecord
   belongs_to :category
   belongs_to :account
   belongs_to :pot, optional: true
-  belongs_to :purchase_order, optional: true
-
   validates :date, :amount_cents, :kind, presence: true
   validates :amount_cents, numericality: { only_integer: true, greater_than: 0 }
   validates :kind, inclusion: { in: %w[expense income] }

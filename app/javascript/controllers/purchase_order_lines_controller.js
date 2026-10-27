@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["rows", "template", "goodsTotal", "search"]
+  static targets = ["rows", "template", "goodsTotal"]
 
   connect() {
     this.updateTotal()
@@ -17,13 +17,6 @@ export default class extends Controller {
   remove(event) {
     event.target.closest("[data-line-row]").remove()
     this.updateTotal()
-  }
-
-  filterVariants(event) {
-    const query = event.target.value.trim().toLowerCase()
-    this.element.querySelectorAll("[data-variant-option]").forEach((option) => {
-      option.hidden = query.length > 0 && !option.dataset.searchText.includes(query)
-    })
   }
 
   updateTotal() {

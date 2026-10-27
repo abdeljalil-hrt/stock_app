@@ -62,7 +62,7 @@ module Finance
     def expense_totals(range)
       Transaction.joins(:category)
         .where(kind: "expense", date: range)
-        .where(purchase_order_id: nil)
+        .where.not(id: PurchaseOrderCost.where.not(transaction_id: nil).select(:transaction_id))
         .where.not(categories: { kind: %w[cost_of_goods transfer] })
         .group(:category_id)
         .sum(:amount_cents)

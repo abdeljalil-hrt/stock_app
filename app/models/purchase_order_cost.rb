@@ -23,7 +23,6 @@ class PurchaseOrderCost < ApplicationRecord
         category: category,
         account: account,
         note: "PO #{purchase_order.number} #{kind.tr("_", " ")}",
-        purchase_order: purchase_order
       )
       update!(linked_transaction: expense)
     end

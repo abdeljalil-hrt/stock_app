@@ -23,8 +23,8 @@ module Finance
           purchase_order: { supplier: "Case Supplier", ordered_on: Date.current.iso8601, expected_on: Date.current.iso8601 },
           commit_action: "ordered",
           lines: {
-            "0" => { variant_id: @first.id, quantity: "4", unit_price: "100" },
-            "1" => { variant_id: @second.id, quantity: "2", unit_price: "200" }
+            "0" => { product: "#{@first.sku} — #{@first.name}", quantity: "4", unit_price: "100" },
+            "1" => { product: @second.name, quantity: "2", unit_price: "200" }
           },
           costs: {
             "freight" => { amount: "120", paid_on: Date.current.iso8601, account_id: @account.id },
@@ -41,7 +41,7 @@ module Finance
       assert_equal "ordered", order.status
       assert_equal 1, order.number
       assert_equal 92_000, order.landed_total_cents
-      assert_equal 1, order.transactions.count
+      assert_equal 1, order.costs.count { |cost| cost.linked_transaction.present? }
 
       post receive_finance_purchase_order_path(order), params: {
         received: { first_line.id.to_s => "2", second_line.id.to_s => "1" }
@@ -73,12 +73,27 @@ module Finance
       assert_includes response.body, "No supplier orders yet."
     end
 
+    test "new order has text product, quantity, piece price, freight, and optional customs inputs" do
+      get new_finance_purchase_order_path
+
+      assert_response :success
+      assert_select "input[type='text'][name='lines[0][product]'][list='purchase-order-products']"
+      assert_select "input[type='number'][name='lines[0][quantity]']"
+      assert_select "input[type='number'][name='lines[0][unit_price]']"
+      assert_includes response.body, "Freight price"
+      assert_includes response.body, "Customs (optional; can be added later)"
+    end
+
     test "add cost creates a linked expense transaction" do
       post finance_purchase_orders_path, params: {
         purchase_order: { supplier: "Supplier" },
-        lines: { "0" => { variant_id: @first.id, quantity: "1", unit_price: "50" } }
+        lines: { "0" => { product: @first.sku, quantity: "1", unit_price: "50" } }
       }
       order = PurchaseOrder.order(:number).last
+
+      get finance_purchase_order_path(order)
+      assert_response :success
+      assert_includes response.body, "No additional costs."
 
       assert_difference "Transaction.count", 1 do
         post add_cost_finance_purchase_order_path(order), params: {
@@ -87,8 +102,13 @@ module Finance
       end
       transaction = Transaction.order(:id).last
       assert_equal "Customs", transaction.category.name
-      assert_equal order, transaction.purchase_order
+      assert_equal order, order.costs.find_by!(kind: "customs").purchase_order
+      assert_equal transaction, order.costs.find_by!(kind: "customs").linked_transaction
       assert_equal 2_000, transaction.amount_cents
+
+      get finance_purchase_order_path(order)
+      assert_response :success
+      assert_includes response.body, "Customs"
     end
   end
 end

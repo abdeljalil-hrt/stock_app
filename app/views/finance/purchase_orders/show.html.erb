@@ -39,10 +39,10 @@
       <table class="w-full text-left text-sm">
         <thead class="border-b border-gray-200 text-xs uppercase text-gray-500"><tr><th class="py-2"><%= ui("Cost type") %></th><th class="py-2 text-right"><%= ui("Amount") %></th><th class="py-2"><%= ui("Paid on") %></th><th class="py-2"><%= ui("Account") %></th></tr></thead>
         <tbody class="divide-y divide-gray-100">
-          <% @purchase_order.costs.reject { |cost| cost.amount_cents.zero? }.each do |cost| %>
+          <% @purchase_order.costs.reject { |cost| cost.amount_cents.to_i.zero? }.each do |cost| %>
             <tr><td class="py-2"><%= ui(cost.kind.humanize) %></td><td class="py-2 text-right tabular-nums"><%= format_money(cost.amount_cents) %></td><td class="py-2"><%= cost.paid_on ? l(cost.paid_on, format: :short) : "—" %></td><td class="py-2"><%= cost.account&.name || "—" %></td></tr>
           <% end %>
-          <% if @purchase_order.costs.reject { |cost| cost.amount_cents.zero? }.empty? %><tr><td colspan="4" class="py-4 text-center text-xs text-gray-500"><%= ui("No additional costs.") %></td></tr><% end %>
+          <% if @purchase_order.costs.reject { |cost| cost.amount_cents.to_i.zero? }.empty? %><tr><td colspan="4" class="py-4 text-center text-xs text-gray-500"><%= ui("No additional costs.") %></td></tr><% end %>
         </tbody>
       </table>
     </div>
