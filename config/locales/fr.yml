@@ -215,6 +215,10 @@ fr:
     "Return damaged": "Retour endommagé"
     "PINK": "Rose"
     "MIRROR": "Miroir"
+    "BLUE": "Bleu"
+    "LENS": "Objectif"
+    "BLOOM": "Floraison"
+    "BUTTERFLY": "Papillon"
     "STRAP": "Sangle"
   scan:
     unknown_sku: "Référence inconnue : %{sku}"

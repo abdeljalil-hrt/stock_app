@@ -24,7 +24,7 @@ A private Rails inventory app for scanning barcode-labelled variants while shipp
 4. Start Rails with `bin/dev` and open `http://localhost:3000`. The root URL redirects to `/dashboard`.
 5. Run tests with `bin/rails test`.
 
-`db/stock.csv` contains the opening stock list. Pink and Mirror SKUs use the `SAU-PINK-...` and `SAU-MIRROR-...` prefixes; blank quantities are treated as zero, and the strap opens with 40. Opening movements use a fixed seed reference so reseeding does not duplicate them.
+`db/stock.csv` contains the opening stock list. Phone-case SKUs use `SAU-<DESIGN>-...`, for example `SAU-PINK-...`, `SAU-MIRROR-...`, `SAU-BLUE-...`, and `SAU-LENS-...`; blank quantities are treated as zero, and the strap opens with 40. Opening movements use a fixed seed reference so reseeding does not duplicate them.
 
 ## Using the app
 

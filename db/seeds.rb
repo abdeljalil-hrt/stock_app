@@ -37,7 +37,7 @@ models.each do |phone_model|
   )
 end
 
-{ "PINK" => "Pink", "MIRROR" => "Mirror" }.each do |design, label|
+{ "PINK" => "Pink", "MIRROR" => "Mirror", "BLUE" => "Blue", "LENS" => "Lens", "BLOOM" => "Bloom", "BUTTERFLY" => "Butterfly" }.each do |design, label|
   models.each do |phone_model|
     sku = "SAU-#{design}-#{phone_model}"
     Variant.find_or_create_by!(sku: sku) do |variant|
