@@ -1,4 +1,14 @@
 Rails.application.routes.draw do
+  namespace :api do
+    post "mcp", to: "chatgpt/mcp#create"
+    namespace :chatgpt, defaults: { format: :json } do
+      namespace :v1 do
+        get "inventory", to: "inventory#show"
+        get "expenses", to: "expenses#index"
+      end
+    end
+  end
+
   resource :session
   resources :passwords, param: :token
   post "locale/:locale", to: "locales#update", as: :locale
@@ -17,6 +27,8 @@ Rails.application.routes.draw do
 
   namespace :finance do
     get "/", to: "overview#show", as: :overview
+    get "assistant", to: "assistant#show", as: :assistant
+    post "assistant", to: "assistant#create"
     post "expenses/preview", to: "expenses#preview", as: :expense_preview
     post "expenses/save-all", to: "expenses#save_all", as: :expense_save_all
     resources :expenses, only: %i[index create edit update destroy]

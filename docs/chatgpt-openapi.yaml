@@ -1,0 +1,92 @@
+openapi: 3.1.0
+info:
+  title: Stock App Read Only API
+  description: Read live inventory and recorded expenses from the stock app.
+  version: 1.0.0
+servers:
+  - url: https://YOUR-APP-DOMAIN
+    description: Replace with the public HTTPS URL of your deployed app.
+paths:
+  /api/chatgpt/v1/inventory:
+    get:
+      operationId: getInventory
+      summary: Get current inventory quantities
+      description: Returns live stock by SKU, with optional lookup for one SKU.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: sku
+          in: query
+          required: false
+          description: Optional SKU to look up. Matching is case insensitive.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Current stock levels.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  as_of: { type: string, format: date-time }
+                  total_units: { type: integer }
+                  variant_count: { type: integer }
+                  low_stock_count: { type: integer }
+                  variants:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sku: { type: string }
+                        name: { type: string }
+                        phone_model: { type: string }
+                        design: { type: string }
+                        quantity_on_hand: { type: integer }
+                        low_stock_threshold: { type: integer }
+                        low_stock: { type: boolean }
+        "401": { description: Missing or invalid API key. }
+        "503": { description: API key is not configured on the app. }
+  /api/chatgpt/v1/expenses:
+    get:
+      operationId: getExpenses
+      summary: Get recorded expenses for a date range
+      description: Defaults to the current month through today. Excludes transfer and cost-of-goods entries, and purchase order costs, matching the app's running expense reports.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: start_date
+          in: query
+          required: false
+          description: Inclusive start date in YYYY-MM-DD format. Defaults to the first day of the current month.
+          schema: { type: string, format: date }
+        - name: end_date
+          in: query
+          required: false
+          description: Inclusive end date in YYYY-MM-DD format. Defaults to today.
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Expense totals, categories, and up to 100 recent entries.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  start_date: { type: string, format: date }
+                  end_date: { type: string, format: date }
+                  total_cents: { type: integer }
+                  total_amount: { type: number }
+                  currency: { type: string, example: MAD }
+                  transaction_count: { type: integer }
+                  totals_by_category: { type: array, items: { type: object } }
+                  transactions: { type: array, items: { type: object } }
+                  transactions_truncated: { type: boolean }
+        "401": { description: Missing or invalid API key. }
+        "422": { description: Invalid date range or date format. }
+        "503": { description: API key is not configured on the app. }
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
